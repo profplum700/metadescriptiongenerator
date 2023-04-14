@@ -37,16 +37,20 @@ async function generateMetaDescription(title, content, categories, tags) {
         }
       }
 
-      const response = await openai.createCompletion({
-        model: "text-davinci-003",
-        prompt: prompt,
+      const response = await openai.createChatCompletion({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: `You are an expert SEO specialist. Your task is to generate an engaging SEO meta description for a blog post to drive traffic. 
+          It should be as close to 160 characters as possible and no less than 120 characters. Reply with the meta description only.` },
+          { role: "user", content: prompt },
+        ],
         max_tokens: 40,
         n: 1,
         stop: null,
         temperature: 0.3,
       });
 
-      metaDescription = response.data.choices[0].text
+      metaDescription = response.data.choices[0].message.content
         .replace(/\"{2,}/g, '"')
         .trim();
 
