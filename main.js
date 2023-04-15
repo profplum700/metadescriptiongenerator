@@ -6,91 +6,133 @@ const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const { generateMetaDescription } = require('./generateMetaDescription');
 
-const argv = yargs(hideBin(process.argv))
-  .usage('Usage: $0 -i [input file] -o [output file]')
-  .option('i', {
-    alias: 'input',
-    demandOption: true,
-    describe: 'Input CSV file',
-    type: 'string',
-  })
-  .option('o', {
-    alias: 'output',
-    default: 'metadescriptions.csv',
-    describe: 'Output CSV file',
-    type: 'string',
-  })
-  .argv;
-
+const argv = parseCommandLineArguments();
 const inputFile = argv.input;
-const outputFile = argv.output;
+let outputFile = argv.output || argv.o;
 
 const fsPromises = fs.promises;
 
 async function processPosts() {
+  outputFile = await checkOutputFile(outputFile, argv.overwrite);
+  const csvWriter = createCsvWriter(outputFile);
+
+  const records = await readInputFile(inputFile);
+  await csvWriter.writeRecords(records);
+  console.log(`Meta descriptions saved to ${outputFile}`);
+}
+
+function parseCommandLineArguments() {
+  return yargs(hideBin(process.argv))
+    .usage('Usage: $0 -i [input file] -o [output file]')
+    .option('i', {
+      alias: 'input',
+      demandOption: true,
+      describe: 'Input CSV file',
+      type: 'string',
+    })
+    .option('o', {
+      alias: 'output',
+      default: 'metadescriptions.csv',
+      describe: 'Output CSV file',
+      type: 'string',
+    })
+    .option('overwrite', {
+      describe: 'Overwrite the existing output file if it exists',
+      type: 'boolean',
+    })
+    .argv;
+}
+
+async function checkOutputFile(outputFile, overwrite) {
   try {
     await fsPromises.access(outputFile, fs.constants.F_OK);
-    console.log(`Output file ${outputFile} already exists. Checking if it's locked...`);
-    try {
-      const fileHandle = await fsPromises.open(outputFile, 'r+', fs.constants.O_EXCL);
-      console.log('The output file is not locked.');
-      await fileHandle.close();
-    } catch (err) {
-      if (err.code === 'EBUSY' || err.code === 'EACCES') {
-        throw new Error(`The output file ${outputFile} is locked or in use.`);
-      } else {
-        throw err;
-      }
+
+    if (overwrite) {
+      console.log(`Output file ${outputFile} will be overwritten.`);
+      return outputFile;
+    } else {
+      let counter = 1;
+      let newOutputFile;
+
+      do {
+        newOutputFile = path.join(
+          path.dirname(outputFile),
+          path.basename(outputFile, path.extname(outputFile)) + `-${counter}` + path.extname(outputFile)
+        );
+        counter++;
+      } while (await fileExists(newOutputFile));
+
+      console.log(`Output file ${outputFile} already exists. Using ${newOutputFile} instead.`);
+      return newOutputFile;
     }
   } catch (err) {
-    if (err.code !== 'ENOENT') {
+    if (err.code === 'ENOENT') {
+      console.log(`Output file ${outputFile} does not exist.`);
+      return outputFile;
+    } else {
       throw err;
     }
-    console.log(`Output file ${outputFile} does not exist.`);
   }
-  const csvWriter = createObjectCsvWriter({
+}
+
+async function fileExists(filePath) {
+  try {
+    await fsPromises.access(filePath, fs.constants.F_OK);
+    return true;
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return false;
+    } else {
+      throw err;
+    }
+  }
+}
+
+function createCsvWriter(outputFile) {
+  return createObjectCsvWriter({
     path: outputFile,
     header: [
+      { id: 'permalink', title: 'URL' },
       { id: 'title', title: 'Title' },
-      { id: 'metaDescription', title: 'Meta Description' },
-    ],
+      { id: 'metaDescription', title: 'Meta Description' }
+    ]
   });
+}
 
+async function readInputFile(inputFile) {
   const records = [];
+  const readStream = fs.createReadStream(path.resolve(inputFile)).pipe(csvParser());
+  const processingPromises = [];
 
-  const processData = (row) => {
-    return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
+    readStream.on('data', (row) => {
+      processingPromises.push(processData(row, records));
+    });
+
+    readStream.on('end', async () => {
       try {
-        const title = row.Title;
-        const content = row.Content;
-        const categories = row.Categories;
-        const tags = row.Tags;
-        console.log(`Processing post: ${title}`);
-        const metaDescription = await generateMetaDescription(title, content, categories, tags);
-        records.push({ title, metaDescription });
-        resolve();
+        await Promise.all(processingPromises);
+        resolve(records);
       } catch (err) {
-        reject(`Error processing ${row.Title}: ${err}`);
+        reject(err);
       }
     });
-  };
 
-  const readStream = fs.createReadStream(path.resolve(inputFile)).pipe(csvParser());
-
-  const promises = [];
-  readStream.on('data', (row) => {
-    promises.push(processData(row));
+    readStream.on('error', (err) => {
+      reject(err);
+    });
   });
+}
 
-  readStream.on('end', async () => {
-    try {
-      await Promise.all(promises);
-      await csvWriter.writeRecords(records);
-      console.log(`Meta descriptions saved to ${outputFile}`);
-    } catch (err) {
-      console.error('Error writing output file:', err);
-    }
-  });
+async function processData(row, records) {
+  try {
+    const { Title, Content, Categories, Tags, Permalink } = row;
+    console.log(`Processing post: ${Title}`);
+    const metaDescription = await generateMetaDescription(Title, Content, Categories, Tags);
+    records.push({ permalink: Permalink, title: Title, metaDescription });
+  } catch (err) {
+    throw new Error(`Error processing ${row.Title}: ${err}`);
+  }
 }
 
 processPosts();
