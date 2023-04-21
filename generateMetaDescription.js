@@ -20,7 +20,7 @@ async function generateMetaDescription(title, content, categories, tags) {
       const messages = messagesBuilder(title, strippedContent, categories, tags, correctionPrompt);
       metaDescription = await getMetaDescription(messages);
 
-      if (metaDescription.length >= 120 && metaDescription.length <= 160) {
+      if (metaDescription.length >= 107 && metaDescription.length <= 142) {
         return metaDescription;
       }
 
@@ -48,9 +48,9 @@ function messagesBuilder(title, strippedContent, categories, tags, correctionPro
   const messages = [
     {
       role: "system",
-      content: `You are an expert SEO specialist. Your task is to generate an engaging SEO meta description for a blog post to drive traffic. It should be close to 
-      but no more than 160 characters and no less than 140 characters. It should be between 1 and 2 sentences with up to 13 words per sentence. Follow the 
-      best practices for writing SEO meta descriptions including: identifying and using a focus keyphrase from the title, content and categories and tags, using 
+      content: `You are an expert SEO specialist. Your task is to generate an engaging SEO meta description for a blog post to drive traffic. It should be between 107 and 
+      142 characters. It should be between 1 and 2 sentences with up to 13 words per sentence. Follow the best practices for writing SEO meta descriptions including: 
+      identifying and using a focus keyphrase from the title, content and categories and tags, using 
       the active voice, making sure it matches the content of the page, matching the sentiment of the content and making it unique. DO NOT include a 
       call to action. Reply with the meta description only.`,
     },
@@ -68,7 +68,7 @@ async function getMetaDescription(messages) {
   const response = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
     messages: messages,
-    max_tokens: 35,
+    max_tokens: 40,
     n: 1,
     stop: null,
     temperature: 0.5,
