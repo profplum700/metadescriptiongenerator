@@ -92,6 +92,7 @@ function createCsvWriter(outputFile) {
   return createObjectCsvWriter({
     path: outputFile,
     header: [
+      { id: 'id', title: 'ID' },
       { id: 'permalink', title: 'URL' },
       { id: 'title', title: 'Title' },
       { id: 'metaDescription', title: 'Meta Description' }
@@ -105,8 +106,10 @@ async function readInputFile(inputFile) {
   const processingPromises = [];
 
   return new Promise((resolve, reject) => {
+    let index = 0;
     readStream.on('data', (row) => {
-      processingPromises.push(processData(row, records));
+      processingPromises.push(processData(row, records, index));
+      index++;
     });
 
     readStream.on('end', async () => {
@@ -124,12 +127,13 @@ async function readInputFile(inputFile) {
   });
 }
 
-async function processData(row, records) {
+async function processData(row, records, index) {
   try {
-    const { Title, Content, Categories, Tags, Permalink } = row;
+    const { Id, Title, Content, Categories, Tags, Permalink } = row;
     console.log(`Processing post: ${Title}`);
     const metaDescription = await generateMetaDescription(Title, Content, Categories, Tags);
-    records.push({ permalink: Permalink, title: Title, metaDescription });
+    records[index] = { permalink: Permalink, title: Title, metaDescription };
+    records.push({ id: Id, permalink: Permalink, title: Title, metaDescription });
   } catch (err) {
     throw new Error(`Error processing ${row.Title}: ${err}`);
   }
