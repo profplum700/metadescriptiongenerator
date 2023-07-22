@@ -11,23 +11,27 @@ I don't support this tool or use it anymore as I'm more interested now in buildi
 
 - Clone the repo
 - Install Node.js
-- Set your [OPENAI_API_KEY](https://platform.openai.com/account/api-keys) by either:
+- You can set your [OPENAI_API_KEY](https://platform.openai.com/account/api-keys) by:
   - Adding it as an environment variable
+  - Creating a .env file in the root of the project and setting it there e.g. `OPENAI_API_KEY=<your key>`
   - In generateMetaDescription.js, replacing `process.env.OPENAI_API_KEY` with it here: `const openaiKey = process.env.OPENAI_API_KEY;`
 - Run: `node .\main.js -i "<input file>" -o "<output file>"`
   - e.g. `node .\main.js -i "C:\Users\USER\Downloads\Posts-Export.csv" -o "C:\Users\USER\Downloads\metadescriptions.csv"`
 
 ## Input file format
 
-I created this program to process exports from [WP All Export](https://www.wpallimport.com/upgrade-to-wp-all-export-pro/)https://www.wpallimport.com/upgrade-to-wp-all-export-pro/.
+I created this program to process exports from [WP All Export](https://www.wpallimport.com/upgrade-to-wp-all-export-pro/). It should however work with any CSV file with the following fields:
 
-The input file is expected to be a CSV file with the following fields:
 - Id - The post ID
 - Title - The post title
 - Content - The full content of the post
 - Categories - Any categories assigned to the post
 - Tags - Any tags assigned to the post
 - Permalink - The permalink/URL for the post
+
+![image](https://github.com/profplum700/metadescriptiongenerator/assets/13546520/bf4c92b3-e5aa-4dfa-a780-7124025c12ee)
+
+## Output
 
 The output CSV file will contain the following fields:
 
