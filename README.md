@@ -5,6 +5,8 @@ This project uses OpenAI to generate meta descriptions for each row in a CSV fil
 
 Generating meta descriptions this way is quick and improves SEO. Without meta descriptions, pages rank poorly. This tool boosted my site's SERP rankings within 2 weeks.
 
+The tool will make 5 attempts to generate a meta description between 107 and 142 characters long (which is the [optimal length](https://yoast.com/meta-descriptions/#:~:text=Keep%20it%20up%20to%20155%20characters,-The%20right%20length&text=You%20should%20take%20enough%20space,like%20in%20the%20example%20below.)). If it fails to, it still produces output but marks rows with "TARGET LENGTH NOT MET".
+
 I don't support this tool or use it anymore as I'm more interested now in building applications using tools like [ChainForge](https://github.com/ianarawjo/ChainForge) and [Flowise](https://github.com/FlowiseAI/Flowise). You could probably quickly make a much better version of this tool using those. I've actively contributed to the testing of ChainForge as by-product of using it so much.
 
 ## Usage
